@@ -31,3 +31,41 @@ def eventos(request, paciente_id):
         return JsonResponse(eve_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
+
+def alergias(request, paciente_id):
+    if request.method == 'GET':
+        try:
+            alergias = Alergia.objects.filter(paciente=paciente_id)
+        except Alergia.DoesNotExist:
+            return JsonResponse({'error': 'Paciente sin alergias'})
+
+        pac_json = to_json(alergias)
+        return JsonResponse(pac_json, safe=False)
+    else:
+        return JsonResponse({'error': 'No permitido'})
+
+def diagnosticos(request, paciente_id):
+    if request.method == 'GET':
+        try:
+            diags = Diagnostico.objects.filter(paciente=paciente_id)
+        except Diagnostico.DoesNotExist:
+            return JsonResponse({'error': 'Paciente sin diagnosticos'})
+
+        pac_json = to_json(alergias)
+        return JsonResponse(pac_json, safe=False)
+    else:
+        return JsonResponse({'error': 'No permitido'})
+
+def intervenciones(request, paciente_id):
+    if request.method == 'GET':
+        try:
+            alergias = Intervencion.objects.filter(paciente=paciente_id)
+        except Intervencion.DoesNotExist:
+            return JsonResponse({'error': 'Paciente sin intervenciones'})
+
+        pac_json = to_json(alergias)
+        return JsonResponse(pac_json, safe=False)
+    else:
+        return JsonResponse({'error': 'No permitido'})
+
+
