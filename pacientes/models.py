@@ -18,7 +18,7 @@ ALER_SEVER = (
     ('B', 'Baja'),
 )
 
-ALER_TIPO = (
+EVENT_TIPO = (
     ('C', 'Cita'),
     ('A', 'Ambulatorio'),
     ('H', 'Hospitalizacion'),
@@ -95,10 +95,7 @@ class Toma(models.Model):
     paciente = models.ForeignKey(Paciente)
 
 class SignoVital(models.Model):
-    codigo = models.CharField(max_length=50)
+    valor = models.DoubleField(max_length=50)
     nombre = models.CharField(max_length=50)
-    dosis = models.CharField(max_length=50)
-    via = models.CharField(max_length=50)
-    indicacion = models.CharField(max_length=1000)
-    paciente = models.ForeignKey(Paciente)
+    unidad = models.CharField(max_length=50)
     toma = models.ForeignKey(Toma)
