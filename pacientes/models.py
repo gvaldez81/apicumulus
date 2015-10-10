@@ -56,14 +56,14 @@ class Alergia(models.Model):
 
 class Diagnostico(models.Model):
     fecha = models.DateField()
-    evento = models..ForeignKey(Evento)
+    evento = models.ForeignKey(Evento)
     codigo = models.CharField(max_length=50)
     nombre = models.CharField(max_length=100)
     paciente = models.ForeignKey(Paciente)
 
 class Intervencion(models.Model):
     fecha = models.DateField()
-    evento = models..ForeignKey(Evento)
+    evento = models.ForeignKey(Evento)
     codigo = models.CharField(max_length=50)
     nombre = models.CharField(max_length=100)
     paciente = models.ForeignKey(Paciente)
@@ -76,7 +76,7 @@ class Historia(models.Model):
 
 class Receta(models.Model):
     fecha = models.DateField()
-    evento = models..ForeignKey(Evento)
+    evento = models.ForeignKey(Evento)
     notas = models.CharField(max_length=1000)
     paciente = models.ForeignKey(Paciente)
 
@@ -86,16 +86,16 @@ class Medicamento(models.Model):
     dosis = models.CharField(max_length=50)
     via = models.CharField(max_length=50)
     indicacion = models.CharField(max_length=1000)
-    paciente = models.ForeignKey(Paciente)
-    receta = models.ForeignKey(Receta)
+    paciente = models.ForeignKey(Paciente, null=True, blank=True)
+    receta = models.ForeignKey(Receta, null=True, blank=True)
 
 class Toma(models.Model):
     fecha = models.DateField()
-    evento = models..ForeignKey(Evento)
+    evento = models.ForeignKey(Evento)
     paciente = models.ForeignKey(Paciente)
 
 class SignoVital(models.Model):
-    valor = models.DoubleField(max_length=50)
+    valor = models.FloatField(max_length=50)
     nombre = models.CharField(max_length=50)
     unidad = models.CharField(max_length=50)
     toma = models.ForeignKey(Toma)

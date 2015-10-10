@@ -18,3 +18,16 @@ def paciente(request, paciente_id):
         return JsonResponse(pac_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
+
+def eventos(request, paciente_id):
+    if request.method == 'GET':
+        try:
+            eventos = Evento.objects.filter(paciente=paciente_id)
+        except Evento.DoesNotExist:
+            return JsonResponse({'error': 'Paciente sin eventos'})
+
+        eve_json = to_json(eventos, True)
+
+        return JsonResponse(eve_json, safe=False)
+    else:
+        return JsonResponse({'error': 'No permitido'})
