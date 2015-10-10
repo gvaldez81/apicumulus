@@ -34,7 +34,7 @@ class Paciente(models.Model):
     apellido = models.CharField(max_length=50)
     apellido2 = models.CharField(max_length=50)
     fechaNacimiento = models.DateField()
-    curp = models.CharField(max_length=50)
+    curp = models.CharField(max_length=50, unique=True)
     sexo = models.CharField(choices=SEXOS, max_length=50)
     hospitales = models.ManyToManyField(Hospital)
 
