@@ -38,32 +38,31 @@ def eventos(request, paciente_id):
         eventos_json = to_json(eventos, True)
 
         for evento_json in eventos_json:
-	    
-            tomas_json = to_json(Tomas.objects.filter(evento=evento_json['id']), True)
-
+            # tomas
+            tomas_json = to_json(Toma.objects.filter(evento=evento_json['id']), True)
             for toma_json in tomas_json:
                 signos = SignoVital.objects.filter(toma=toma_json['id'])
                 signos_json = to_json(signos, True)
-	        toma_json['signos'] = signos_json
-
+                toma_json['signos'] = signos_json
             evento_json['tomas'] = tomas_json
 
-	    recetas_json = to_json(Receta.objects.filter(evento=evento_json['id']), True)
-
+            # recetas
+            recetas_json = to_json(Receta.objects.filter(evento=evento_json['id']), True)
             for receta_json in recetas_json:
                 meds = Medicamento.objects.filter(receta=receta_json['id'])
                 meds_json = to_json(meds, True)
-	        receta_json['medicamentos'] = meds_json
+                receta_json['medicamentos'] = meds_json
+            evento_json['recetas'] = recetas_json
 
-	    evento_json['recetas'] = recetas_json
+            # diagnosticos
+            diags_json = to_json(Diagnostico.objects.filter(evento=evento_json['id']), True)
+            evento_json['diagnosticos'] = diags_json
 
-	    diags_json = to_json(Diagnostico.objects.filter(evento=evento_json['id']), True)
-	    evento_json['diagnosticos'] = diags_json
+            # intervenciones
+            inter_json = to_json(Intervencion.objects.filter(evento=evento_json['id']), True)
+            evento_json['intervenciones'] = inter_json
 
-	    inter_json = to_json(Intervencion.objects.filter(evento=evento_json['id']), True)
-	    evento_json['intervenciones'] = inter_json
-
-        return JsonResponse(eve_json, safe=False)
+        return JsonResponse(eventos_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
 
@@ -126,15 +125,14 @@ def tomas_signos(request, paciente_id):
 
         if not tomas:
             return JsonResponse({'warning': 'Paciente sin tomas de signos vitales'})
-        
-	tomas_json = to_json(tomas, True)
+
+        tomas_json = to_json(tomas, True)
 
         for toma_json in tomas_json:
             signos = SignoVital.objects.filter(toma=toma_json['id'])
-	    signos_json = to_json(signos, True)
-	    toma_json['signos'] = signos_json
+            signos_json = to_json(signos, True)
+            toma_json['signos'] = signos_json
 
         return JsonResponse(tomas_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
-
