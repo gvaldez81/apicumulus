@@ -56,14 +56,14 @@ class Alergia(models.Model):
 
 class Diagnostico(models.Model):
     fecha = models.DateField()
-    evento = models.ForeignKey(Evento)
+    evento = models.ForeignKey(Evento, null=True, blank=True)
     codigo = models.CharField(max_length=50)
     nombre = models.CharField(max_length=100)
     paciente = models.ForeignKey(Paciente)
 
 class Intervencion(models.Model):
     fecha = models.DateField()
-    evento = models.ForeignKey(Evento)
+    evento = models.ForeignKey(Evento, null=True, blank=True)
     codigo = models.CharField(max_length=50)
     nombre = models.CharField(max_length=100)
     paciente = models.ForeignKey(Paciente)
@@ -91,7 +91,7 @@ class Medicamento(models.Model):
 
 class Toma(models.Model):
     fecha = models.DateField()
-    evento = models.ForeignKey(Evento)
+    evento = models.ForeignKey(Evento, null=True, blank=True)
     paciente = models.ForeignKey(Paciente)
 
 class SignoVital(models.Model):
