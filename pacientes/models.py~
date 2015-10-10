@@ -99,3 +99,21 @@ class SignoVital(models.Model):
     paciente = models.ForeignKey(Paciente)
     toma = models.ForeignKey(Toma)
 
+
+
+    <tomas>
+        <toma>
+            <fecha></fecha>
+            <evento></evento>
+            <signos>
+                <signo>
+                    <valor></valor>
+                    <nombre></nombre>
+                    <unidad></unidad>
+                </signo>
+            </signos>
+        </toma>
+    </tomas>
+
+
+
