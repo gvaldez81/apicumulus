@@ -84,7 +84,7 @@ DATABASES = {
         'NAME': 'cumulus',
         'USER': 'ecaresoft',
         'PASSWORD': '',
-        'HOST': '192.168.11.190',
+        'HOST': '',
         'PORT': '5432',
     }
 }

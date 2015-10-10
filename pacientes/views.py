@@ -21,10 +21,10 @@ def paciente(request, paciente_id):
 
 def eventos(request, paciente_id):
     if request.method == 'GET':
-        try:
-            eventos = Evento.objects.filter(paciente=paciente_id)
-        except Evento.DoesNotExist:
-            return JsonResponse({'error': 'Paciente sin eventos'})
+        eventos = Evento.objects.filter(paciente=paciente_id)
+
+        if not eventos:
+            return JsonResponse({'warning': 'Paciente sin eventos'})
 
         eve_json = to_json(eventos, True)
 
@@ -34,38 +34,36 @@ def eventos(request, paciente_id):
 
 def alergias(request, paciente_id):
     if request.method == 'GET':
-        try:
-            alergias = Alergia.objects.filter(paciente=paciente_id)
-        except Alergia.DoesNotExist:
-            return JsonResponse({'error': 'Paciente sin alergias'})
+        alergias = Alergia.objects.filter(paciente=paciente_id)
 
-        pac_json = to_json(alergias)
-        return JsonResponse(pac_json, safe=False)
+        if not alergias:
+            return JsonResponse({'warning': 'Paciente sin alergias'})
+
+        aler_json = to_json(alergias, multi=True)
+        return JsonResponse(aler_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
 
 def diagnosticos(request, paciente_id):
     if request.method == 'GET':
-        try:
-            diags = Diagnostico.objects.filter(paciente=paciente_id)
-        except Diagnostico.DoesNotExist:
-            return JsonResponse({'error': 'Paciente sin diagnosticos'})
+        diags = Diagnostico.objects.filter(paciente=paciente_id)
 
-        pac_json = to_json(alergias)
-        return JsonResponse(pac_json, safe=False)
+        if not diags:
+            return JsonResponse({'warning': 'Paciente sin diagnosticos'})
+
+        diag_json = to_json(diags, multi=True)
+        return JsonResponse(diag_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
 
 def intervenciones(request, paciente_id):
     if request.method == 'GET':
-        try:
-            alergias = Intervencion.objects.filter(paciente=paciente_id)
-        except Intervencion.DoesNotExist:
-            return JsonResponse({'error': 'Paciente sin intervenciones'})
+        intervenciones = Intervencion.objects.filter(paciente=paciente_id)
 
-        pac_json = to_json(alergias)
-        return JsonResponse(pac_json, safe=False)
+        if not intervenciones:
+            return JsonResponse({'warning': 'Paciente sin intervenciones'})
+
+        inter_json = to_json(intervenciones, multi=True)
+        return JsonResponse(inter_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
-
-
