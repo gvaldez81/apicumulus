@@ -33,14 +33,14 @@ class Paciente(models.Model):
     segundoNombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     apellido2 = models.CharField(max_length=50)
-    fechaNacimiento = models.DateTimeField()
+    fechaNacimiento = models.DateField()
     curp = models.CharField(max_length=50, unique=True)
     sexo = models.CharField(choices=SEXOS, max_length=50)
     hospitales = models.ManyToManyField(Hospital)
 
 class Evento(models.Model):
     tipo = models.CharField(choices=EVENT_TIPO, max_length=50)
-    fecha = models.DateField()
+    fecha = models.DateTimeField()
     medico = models.CharField(max_length=50)
     cedula = models.CharField(max_length=50)
     especialidad = models.CharField(max_length=50)
