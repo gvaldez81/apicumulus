@@ -49,7 +49,7 @@ def paciente(request, paciente_id, hospital_id):
 
     elif request.method == 'DELETE':
         paciente.hospitales.remove(hospital)
-    
+
         return JsonResponse({'mensaje': 'Se removio el permiso al hospital'})
 
     else:
@@ -243,11 +243,10 @@ def recetas(request, paciente_id):
         recetas_json = to_json(recetas, True)
 
         for receta_json in recetas_json:
-	    meds = Medicamento.objects.filter(receta=receta_json['id'])
+            meds = Medicamento.objects.filter(receta=receta_json['id'])
             meds_json = to_json(meds, True)
             receta_json['medicamentos'] = meds_json
 
         return JsonResponse(recetas_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
-

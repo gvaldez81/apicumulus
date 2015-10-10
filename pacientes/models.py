@@ -28,6 +28,9 @@ EVENT_TIPO = (
 class Hospital(models.Model):
     nombre = models.CharField(max_length=50)
 
+    def __str__(self):
+        return self.nombre
+
 class Paciente(models.Model):
     nombre = models.CharField(max_length=50)
     segundoNombre = models.CharField(max_length=50)
@@ -38,6 +41,9 @@ class Paciente(models.Model):
     sexo = models.CharField(choices=SEXOS, max_length=50)
     hospitales = models.ManyToManyField(Hospital)
 
+    def __str__(self):
+        return "%s %s %s %s" % (self.nombre, self.segundoNombre, self.apellido, self.apellido2)
+
 class Evento(models.Model):
     tipo = models.CharField(choices=EVENT_TIPO, max_length=50)
     fecha = models.DateTimeField()
@@ -47,12 +53,18 @@ class Evento(models.Model):
     motivo = models.CharField(max_length=50)
     paciente = models.ForeignKey(Paciente)
 
+    def __str__(self):
+        return "%s - %s" % (self.tipo, self.fecha.strftime('%Y-%m-%d'))
+
 class Alergia(models.Model):
     tipo = models.CharField(choices=ALER_TIPO, max_length=50)
     severidad = models.CharField(choices=ALER_SEVER, max_length=50)
     nombre = models.CharField(max_length=50)
     reaccion = models.CharField(max_length=500)
     paciente = models.ForeignKey(Paciente)
+
+    def __str__(self):
+        return "%s %s %s" % (self.nombre, self.tipo, self.severidad)
 
 class Diagnostico(models.Model):
     fecha = models.DateTimeField()
@@ -61,6 +73,9 @@ class Diagnostico(models.Model):
     nombre = models.CharField(max_length=100)
     paciente = models.ForeignKey(Paciente)
 
+    def __str__(self):
+        return "%s %s - %s" % (self.nombre, self.codigo, self.fecha.strftime('%Y-%m-%d'))
+
 class Intervencion(models.Model):
     fecha = models.DateTimeField()
     evento = models.ForeignKey(Evento, null=True, blank=True)
@@ -68,17 +83,26 @@ class Intervencion(models.Model):
     nombre = models.CharField(max_length=100)
     paciente = models.ForeignKey(Paciente)
 
+    def __str__(self):
+        return "%d %s" % (self.id, self.nombre)
+
 class Historia(models.Model):
     clinica = models.CharField(max_length=1000)
     personal = models.CharField(max_length=1000)
     familiar = models.CharField(max_length=1000)
     paciente = models.ForeignKey(Paciente)
 
+    def __str__(self):
+        return "%d %s" % (self.id, self.paciente.id)
+
 class Receta(models.Model):
     fecha = models.DateTimeField()
     evento = models.ForeignKey(Evento)
     notas = models.CharField(max_length=1000)
     paciente = models.ForeignKey(Paciente)
+
+    def __str__(self):
+        return "%d %s" % (self.id, self.paciente.id)
 
 class Medicamento(models.Model):
     codigo = models.CharField(max_length=50)
@@ -89,13 +113,22 @@ class Medicamento(models.Model):
     paciente = models.ForeignKey(Paciente, null=True, blank=True)
     receta = models.ForeignKey(Receta, null=True, blank=True)
 
+    def __str__(self):
+        return "%d %s" % (self.id, self.codigo)
+
 class Toma(models.Model):
     fecha = models.DateTimeField()
     evento = models.ForeignKey(Evento, null=True, blank=True)
     paciente = models.ForeignKey(Paciente)
+
+    def __str__(self):
+        return "%d %s" % (self.id, self.paciente.id)
 
 class SignoVital(models.Model):
     valor = models.FloatField(max_length=50)
     nombre = models.CharField(max_length=50)
     unidad = models.CharField(max_length=50)
     toma = models.ForeignKey(Toma)
+
+    def __str__(self):
+        return "%d %s" % (self.id, self.valor)
