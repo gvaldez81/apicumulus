@@ -31,14 +31,14 @@ def paciente(request, paciente_id):
 
 
 @csrf_exempt
-def paciente(request, paciente_id, hospital_id):
+def paciente_permiso_hospital(request, paciente_id, hospital_id):
     try:
-        paciente = Paciente.objects.get(paciente=paciente_id)
+        paciente = Paciente.objects.get(id=paciente_id)
     except Paciente.DoesNotExist:
         return JsonResponse({'error': 'Ese paciente no existe'})
 
     try:
-        hospital = Hospital.objects.get(paciente=paciente_id)
+        hospital = Hospital.objects.get(id=hospital_id)
     except Hospital.DoesNotExist:
         return JsonResponse({'error': 'Ese hospital no existe'})
 
