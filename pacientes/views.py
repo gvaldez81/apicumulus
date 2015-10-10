@@ -1,5 +1,7 @@
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from .models import *
+from .forms import *
 from .utils import to_json
 
 # Create your views here.
@@ -66,16 +68,31 @@ def eventos(request, paciente_id):
     else:
         return JsonResponse({'error': 'No permitido'})
 
-
+@csrf_exempt
 def alergias(request, paciente_id):
+    try:
+        paciente = Paciente.objects.get(id=paciente_id)
+    except Paciente.DoesNotExist:
+        return JsonResponse({'error': 'No existe el Usuario'})
+
     if request.method == 'GET':
-        alergias = Alergia.objects.filter(paciente=paciente_id)
+        alergias = Alergia.objects.filter(paciente=paciente)
 
         if not alergias:
             return JsonResponse({'warning': 'Paciente sin alergias'})
 
         aler_json = to_json(alergias, multi=True)
         return JsonResponse(aler_json, safe=False)
+
+    elif request.method == 'POST':
+        form = AlergiaForm(request.POST)
+
+        if form.is_valid():
+            alergia = form.save()
+            return JsonResponse({'mensaje': 'Alergia creada', 'id': alergia.id})
+
+        return JsonResponse({'error': 'Datos invalidos'})
+
     else:
         return JsonResponse({'error': 'No permitido'})
 
@@ -105,7 +122,7 @@ def intervenciones(request, paciente_id):
     else:
         return JsonResponse({'error': 'No permitido'})
 
-
+@csrf_exempt
 def medicamentos(request, paciente_id):
     if request.method == 'GET':
         medicamentos = Medicamento.objects.filter(paciente=paciente_id)
@@ -115,6 +132,16 @@ def medicamentos(request, paciente_id):
 
         meds_json = to_json(medicamentos, multi=True)
         return JsonResponse(meds_json, safe=False)
+
+    elif request.method == 'POST':
+        form = MedicamentoForm(request.POST)
+
+        if form.is_valid():
+            medicamento = form.save()
+            return JsonResponse({'mensaje': 'Medicamento creado', 'id': medicamento.id})
+
+        return JsonResponse({'error': 'Datos invalidos'})
+
     else:
         return JsonResponse({'error': 'No permitido'})
 

@@ -33,7 +33,7 @@ class Paciente(models.Model):
     segundoNombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     apellido2 = models.CharField(max_length=50)
-    fechaNacimiento = models.DateField()
+    fechaNacimiento = models.DateTimeField()
     curp = models.CharField(max_length=50, unique=True)
     sexo = models.CharField(choices=SEXOS, max_length=50)
     hospitales = models.ManyToManyField(Hospital)
@@ -55,14 +55,14 @@ class Alergia(models.Model):
     paciente = models.ForeignKey(Paciente)
 
 class Diagnostico(models.Model):
-    fecha = models.DateField()
+    fecha = models.DateTimeField()
     evento = models.ForeignKey(Evento, null=True, blank=True)
     codigo = models.CharField(max_length=50)
     nombre = models.CharField(max_length=100)
     paciente = models.ForeignKey(Paciente)
 
 class Intervencion(models.Model):
-    fecha = models.DateField()
+    fecha = models.DateTimeField()
     evento = models.ForeignKey(Evento, null=True, blank=True)
     codigo = models.CharField(max_length=50)
     nombre = models.CharField(max_length=100)
@@ -75,7 +75,7 @@ class Historia(models.Model):
     paciente = models.ForeignKey(Paciente)
 
 class Receta(models.Model):
-    fecha = models.DateField()
+    fecha = models.DateTimeField()
     evento = models.ForeignKey(Evento)
     notas = models.CharField(max_length=1000)
     paciente = models.ForeignKey(Paciente)
@@ -90,7 +90,7 @@ class Medicamento(models.Model):
     receta = models.ForeignKey(Receta, null=True, blank=True)
 
 class Toma(models.Model):
-    fecha = models.DateField()
+    fecha = models.DateTimeField()
     evento = models.ForeignKey(Evento, null=True, blank=True)
     paciente = models.ForeignKey(Paciente)
 
