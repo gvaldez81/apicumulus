@@ -1,8 +1,6 @@
-import json
-from django.shortcuts import render
-from django.core import serializers
 from django.http import JsonResponse
-from .models import Paciente
+from .models import *
+from .utils import to_json
 
 # Create your views here.
 def paciente(request, paciente_id):
@@ -10,9 +8,13 @@ def paciente(request, paciente_id):
         try:
             paciente = Paciente.objects.get(id=paciente_id)
         except Paciente.DoesNotExist:
-            pass
+            return JsonResponse({'error': 'Ese paciente no existe'})
 
-        data = serializers.serialize('json', [paciente, ])
-        struct = json.loads(data)
+        pac_json = to_json(paciente)
+        hosp_json = to_json(paciente.hospitales.all(), True)
 
-        return JsonResponse(struct, safe=False)
+        pac_json['hospitales'] = hosp_json
+
+        return JsonResponse(pac_json, safe=False)
+    else:
+        return JsonResponse({'error': 'No permitido'})

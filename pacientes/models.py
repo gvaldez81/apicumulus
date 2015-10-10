@@ -7,6 +7,9 @@ SEXOS = (
 )
 
 # Create your models here.
+class Hospital(models.Model):
+    nombre = models.CharField(max_length=50)
+
 class Paciente(models.Model):
     nombre = models.CharField(max_length=50)
     segundoNombre = models.CharField(max_length=50)
@@ -15,3 +18,4 @@ class Paciente(models.Model):
     fechaNacimiento = models.DateField()
     curp = models.CharField(max_length=50)
     sexo = models.CharField(choices=SEXOS, max_length=50)
+    hospitales = models.ManyToManyField(Hospital)
