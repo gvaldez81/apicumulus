@@ -13,7 +13,15 @@ def paciente(request, paciente_id):
         pac_json = to_json(paciente)
         hosp_json = to_json(paciente.hospitales.all(), True)
 
+        historial = Historia.objects.filter(paciente=paciente)
+
+        if historial:
+            hist_json = to_json(historial, True)
+        else:
+            hist_json = []
+
         pac_json['hospitales'] = hosp_json
+        pac_json['historia'] = hist_json
 
         return JsonResponse(pac_json, safe=False)
     else:
