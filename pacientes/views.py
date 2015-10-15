@@ -3,223 +3,204 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from .forms import *
 from .utils import to_json
+from .serializers import *
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 # Create your views here.
-def paciente(request, paciente_id):
-    if request.method == 'GET':
+class PacienteView(APIView):
+    def get(self, request, paciente_id, format=None):
         try:
             paciente = Paciente.objects.get(id=paciente_id)
         except Paciente.DoesNotExist:
-            return JsonResponse({'error': 'Ese paciente no existe'})
+            response = Response({'error': 'Ese paciente no existe'}, status=status.HTTP_404_NOT_FOUND)
 
-        pac_json = to_json(paciente)
-        hosp_json = to_json(paciente.hospitales.all(), True)
-
-        historial = Historia.objects.filter(paciente=paciente)
-
-        if historial:
-            hist_json = to_json(historial, True)
-        else:
-            hist_json = []
+        pac_json = PacienteSerializer(paciente).data
+        hosp_json = HospitalSerializer(paciente.hospitales.all(), many=True).data
+        hist_json = HistoriaSerializer(Historia.objects.filter(paciente=paciente), many=True).data
 
         pac_json['hospitales'] = hosp_json
         pac_json['historia'] = hist_json
 
-        return JsonResponse(pac_json, safe=False)
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response(pac_json, status=status.HTTP_200_OK)
 
 
-@csrf_exempt
-def paciente_permiso_hospital(request, paciente_id, hospital_id):
-    try:
-        paciente = Paciente.objects.get(id=paciente_id)
-    except Paciente.DoesNotExist:
-        return JsonResponse({'error': 'Ese paciente no existe'})
+class PacientePermisoHospitalView(APIView):
+    def get_objects(self, paciente_id, hospital_id):
+        try:
+            paciente = Paciente.objects.get(id=paciente_id)
+        except Paciente.DoesNotExist:
+            response = Response({'error': 'Ese paciente no existe'}, status=status.HTTP_404_NOT_FOUND)
+            return [response, None, None]
 
-    try:
-        hospital = Hospital.objects.get(id=hospital_id)
-    except Hospital.DoesNotExist:
-        return JsonResponse({'error': 'Ese hospital no existe'})
+        try:
+            hospital = Hospital.objects.get(id=hospital_id)
+        except Hospital.DoesNotExist:
+            response = Response({'error': 'Ese hospital no existe'}, status=status.HTTP_404_NOT_FOUND)
+            return [response, None, None]
 
-    if request.method == 'POST':
+        return [None, paciente, hospital]
+
+    def post(self, request, paciente_id, hospital_id, format=None):
+        error, paciente, hospital = self.get_objects(paciente_id, hospital_id)
+        if error:
+            return error
+
         paciente.hospitales.add(hospital)
+        return Response({'mensaje': 'Se dio permiso al hospital'}, status=status.HTTP_200_OK)
 
-        return JsonResponse({'mensaje': 'Se dio permiso al hospital'})
+    def delete(self, request, paciente_id, hospital_id, format=None):
+        error, paciente, hospital = self.get_objects(paciente_id, hospital_id)
+        if error:
+            return error
 
-    elif request.method == 'DELETE':
         paciente.hospitales.remove(hospital)
-
-        return JsonResponse({'mensaje': 'Se removio el permiso al hospital'})
-
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response({'mensaje': 'Se removio el permiso al hospital'}, status=status.HTTP_200_OK)
 
 
-def paciente_por_curp(request, curp):
-    if request.method == 'GET':
+class PacientePorCurpView(APIView):
+    def get(self, request, curp):
         try:
             paciente = Paciente.objects.get(curp=curp)
         except Paciente.DoesNotExist:
-            return JsonResponse({'error': 'Ese paciente no existe'})
+            response = Response({'error': 'Ese paciente no existe'}, status=status.HTTP_404_NOT_FOUND)
 
-        return JsonResponse({'id': paciente.id})
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response({'id': paciente.id}, status=status.HTTP_200_OK)
+
 
 # obtiene el paciente solo si el hospital tiene permisos
-def paciente_por_hospital(request, curp, hospital_id):
-    if request.method == 'GET':
+class PacienteTieneHospitalView(APIView):
+    def get(self, request, curp, hospital_id):
         try:
             paciente = Paciente.objects.get(curp=curp)
         except Paciente.DoesNotExist:
-            return JsonResponse({'error': 'Ese paciente no existe'})
+            return Response({'error': 'Ese paciente no existe'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             hospital = paciente.hospitales.get(id=hospital_id)
         except Hospital.DoesNotExist:
-            return JsonResponse({'error': 'Ese hospital no tiene permisos'})
+            return Response({'error': 'Ese hospital no tiene permisos'}, status=status.HTTP_200_OK)
 
-        return JsonResponse({'id': paciente.id})
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response({'id': paciente.id}, status=status.HTTP_200_OK)
 
 
-def eventos(request, paciente_id):
-    if request.method == 'GET':
+class EventosView(APIView):
+    def get(self, request, paciente_id):
         eventos = Evento.objects.filter(paciente=paciente_id)
 
         if not eventos:
-            return JsonResponse({'warning': 'Paciente sin eventos'})
+            return JsonResponse({'warning': 'Paciente sin eventos'}, status=status.HTTP_204_NO_CONTENT)
 
-        eventos_json = to_json(eventos, True)
+        eventos_json = EventoSerializer(eventos, many=True).data
 
         for evento_json in eventos_json:
             # tomas
-            tomas_json = to_json(Toma.objects.filter(evento=evento_json['id']), True)
+            tomas_json = TomaSerializer(Toma.objects.filter(evento=evento_json['id']), many=True).data
             for toma_json in tomas_json:
                 signos = SignoVital.objects.filter(toma=toma_json['id'])
-                signos_json = to_json(signos, True)
+                signos_json = SignoVitalSerializer(signos, many=True).data
                 toma_json['signos'] = signos_json
             evento_json['tomas'] = tomas_json
 
             # recetas
-            recetas_json = to_json(Receta.objects.filter(evento=evento_json['id']), True)
+            recetas_json = RecetaSerializer(Receta.objects.filter(evento=evento_json['id']), many=True).data
             for receta_json in recetas_json:
                 meds = Medicamento.objects.filter(receta=receta_json['id'])
-                meds_json = to_json(meds, True)
+                meds_json = MedicamentoSerializer(meds, many=True).data
                 receta_json['medicamentos'] = meds_json
             evento_json['recetas'] = recetas_json
 
             # diagnosticos
-            diags_json = to_json(Diagnostico.objects.filter(evento=evento_json['id']), True)
+            diags_json = DiagnosticoSerializer(Diagnostico.objects.filter(evento=evento_json['id']), many=True).data
             evento_json['diagnosticos'] = diags_json
 
             # intervenciones
-            inter_json = to_json(Intervencion.objects.filter(evento=evento_json['id']), True)
+            inter_json = IntervencionSerializer(Intervencion.objects.filter(evento=evento_json['id']), many=True).data
             evento_json['intervenciones'] = inter_json
 
-        return JsonResponse(eventos_json, safe=False)
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response(eventos_json, status=status.HTTP_200_OK)
 
 
-def historia(request, paciente_id):
-    if request.method == 'GET':
-        try:
-            historia = Historia.objects.get(paciente=paciente_id)
-        except Historia.DoesNotExist:
-            return JsonResponse({'error': 'Ese paciente no existe'})
+class HistoriaView(APIView):
+    def get(self, request, paciente_id):
+        historial = Historia.objects.filter(paciente=paciente_id)
 
-        hist_json = to_json(historia)
-        return JsonResponse(hist_json, safe=False)
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        if not historial:
+            return JsonResponse({'warning': 'Paciente sin historia'}, status=status.HTTP_204_NO_CONTENT)
 
-@csrf_exempt
-def alergias(request, paciente_id):
-    try:
-        paciente = Paciente.objects.get(id=paciente_id)
-    except Paciente.DoesNotExist:
-        return JsonResponse({'error': 'No existe el Usuario'})
+        hist_json = HistoriaSerializer(historial, many=True).data
+        return Response(hist_json, status=status.HTTP_200_OK)
 
-    if request.method == 'GET':
-        alergias = Alergia.objects.filter(paciente=paciente)
+
+class AlergiasView(APIView):
+    def get(self, request, paciente_id):
+        alergias = Alergia.objects.filter(paciente=paciente_id)
 
         if not alergias:
-            return JsonResponse({'warning': 'Paciente sin alergias'})
+            return Response({'warning': 'Paciente sin alergias'}, status=status.HTTP_204_NO_CONTENT)
 
-        aler_json = to_json(alergias, multi=True)
-        return JsonResponse(aler_json, safe=False)
+        aler_json = AlergiaSerializer(alergias, many=True).data
+        return Response(aler_json, status=status.HTTP_200_OK)
 
-    elif request.method == 'POST':
-        form = AlergiaForm(request.POST)
+    def post(self, request, paciente_id):
+        serializer = AlergiaSerializer(data=request.data)
 
-        if form.is_valid():
-            alergia = form.save()
-            return JsonResponse({'mensaje': 'Alergia creada', 'id': alergia.id})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        return JsonResponse({'error': 'Datos invalidos'})
-
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def diagnosticos(request, paciente_id):
-    if request.method == 'GET':
+class DiagnosticosView(APIView):
+    def get(self, request, paciente_id):
         diags = Diagnostico.objects.filter(paciente=paciente_id)
 
         if not diags:
-            return JsonResponse({'warning': 'Paciente sin diagnosticos'})
+            return JsonResponse({'warning': 'Paciente sin diagnosticos'}, status=status.HTTP_204_NO_CONTENT)
 
-        diag_json = to_json(diags, multi=True)
-        return JsonResponse(diag_json, safe=False)
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        diag_json = DiagnosticoSerializer(diags, many=True).data
+        return Response(diag_json, status=status.HTTP_200_OK)
 
 
-def intervenciones(request, paciente_id):
-    if request.method == 'GET':
+class IntervencionesView(APIView):
+    def get(self, request, paciente_id):
         intervenciones = Intervencion.objects.filter(paciente=paciente_id)
 
         if not intervenciones:
-            return JsonResponse({'warning': 'Paciente sin intervenciones'})
+            return JsonResponse({'warning': 'Paciente sin intervenciones'}, status=status.HTTP_204_NO_CONTENT)
 
-        inter_json = to_json(intervenciones, multi=True)
-        return JsonResponse(inter_json, safe=False)
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        inter_json = IntervencionSerializer(intervenciones, many=True).data
+        return Response(inter_json, status=status.HTTP_200_OK)
 
-@csrf_exempt
-def medicamentos(request, paciente_id):
-    if request.method == 'GET':
+
+class MedicamentosView(APIView):
+    def get(self, request, paciente_id):
         medicamentos = Medicamento.objects.filter(paciente=paciente_id)
 
         if not medicamentos:
-            return JsonResponse({'warning': 'Paciente sin medicamentos'})
+            return JsonResponse({'warning': 'Paciente sin medicamentos'}, status=status.HTTP_204_NO_CONTENT)
 
-        meds_json = to_json(medicamentos, multi=True)
-        return JsonResponse(meds_json, safe=False)
+        meds_json = MedicamentoSerializer(medicamentos, many=True).data
+        return Response(meds_json, status=status.HTTP_200_OK)
 
-    elif request.method == 'POST':
-        form = MedicamentoForm(request.POST)
+    def post(self, request, paciente_id):
+        serializer = MedicamentoSerializer(data=request.data)
 
-        if form.is_valid():
-            medicamento = form.save()
-            return JsonResponse({'mensaje': 'Medicamento creado', 'id': medicamento.id})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        return JsonResponse({'error': 'Datos invalidos'})
-
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def tomas_signos(request, paciente_id):
-    if request.method == 'GET':
+class TomasSignosView(APIView):
+    def get(self, request, paciente_id):
         tomas = Toma.objects.filter(paciente=paciente_id)
 
         if not tomas:
-            return JsonResponse({'warning': 'Paciente sin tomas de signos vitales'})
+            return JsonResponse({'warning': 'Paciente sin tomas de signos vitales'}, status=status.HTTP_204_NO_CONTENT)
 
         tomas_json = to_json(tomas, True)
 
@@ -228,25 +209,21 @@ def tomas_signos(request, paciente_id):
             signos_json = to_json(signos, True)
             toma_json['signos'] = signos_json
 
-        return JsonResponse(tomas_json, safe=False)
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response(tomas_json, status=status.HTTP_200_OK)
 
 
-def recetas(request, paciente_id):
-    if request.method == 'GET':
+class RecetasView(APIView):
+    def get(self, request, paciente_id):
         recetas = Receta.objects.filter(paciente=paciente_id)
 
         if not recetas:
-            return JsonResponse({'warning': 'Paciente sin recetas'})
+            return Response({'warning': 'Paciente sin recetas'}, status=status.HTTP_204_NO_CONTENT)
 
-        recetas_json = to_json(recetas, True)
+        recetas_json = RecetaSerializer(recetas, many=True).data
 
         for receta_json in recetas_json:
             meds = Medicamento.objects.filter(receta=receta_json['id'])
-            meds_json = to_json(meds, True)
+            meds_json = MedicamentoSerializer(meds, many=True).data
             receta_json['medicamentos'] = meds_json
 
-        return JsonResponse(recetas_json, safe=False)
-    else:
-        return JsonResponse({'error': 'No permitido'})
+        return Response(recetas_json, status=status.HTTP_200_OK)
