@@ -17,8 +17,10 @@ from django.conf.urls import include, url
 from django.contrib import admin
 
 from pacientes import urls as pac_urls
+from pacientes.views import search
 
 urlpatterns = [
+    url(r'^search/?$', search, name='search'),
     url(r'^admin/', include(admin.site.urls)),
     url(r'pacientes/', include(pac_urls)),
 ]

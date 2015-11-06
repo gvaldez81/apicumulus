@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from .forms import *
-from .utils import to_json
+from .utils import to_json, raw_sql_search
 
 # Create your views here.
 def paciente(request, paciente_id):
@@ -250,3 +250,14 @@ def recetas(request, paciente_id):
         return JsonResponse(recetas_json, safe=False)
     else:
         return JsonResponse({'error': 'No permitido'})
+
+@csrf_exempt
+def search(request):
+    query = request.POST.get('query','')
+
+    if not query:
+        return JsonResponse({})
+
+    result = raw_sql_search(query)
+
+    return JsonResponse({'result': result})
