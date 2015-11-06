@@ -39,8 +39,6 @@ def raw_sql_search(query):
         query = query.replace(replace_this, for_this)
 
     params = [query for i in range(0,10)]
-    print params
-
     cursor.execute(search.RAW_SQL, params)
 
     result = [{

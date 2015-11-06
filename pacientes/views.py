@@ -260,4 +260,4 @@ def search(request):
 
     result = raw_sql_search(query)
 
-    return JsonResponse({'result': result})
+    return JsonResponse(result, safe=False)
