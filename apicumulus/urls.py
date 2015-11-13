@@ -22,10 +22,11 @@ from pacientes import urls as pac_urls
 from pacientes.views import search, routes
 
 urlpatterns = [
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^search/?$', search, name='search'),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'pacientes/', include(pac_urls)),
-    url(r'', routes, name='routes'),
+    url(r'^pacientes/', include(pac_urls)),
+    url(r'^$', routes, name='routes'),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

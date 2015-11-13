@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 SEXOS = (
     ('H', 'Hombre'),
@@ -32,6 +33,7 @@ class Hospital(models.Model):
         return self.nombre
 
 class Paciente(models.Model):
+    owner = models.OneToOneField(User)
     nombre = models.CharField(max_length=50)
     segundoNombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)

@@ -2,7 +2,7 @@ from django.conf.urls import patterns, url
 from pacientes import views
 
 urlpatterns = patterns('',
-    url(r'^(?P<paciente_id>\d+)/$', views.PacienteView.as_view(), name='paciente'),
+    url(r'^(?P<paciente_id>\d+)/$', views.PacienteDetailView.as_view(), name='paciente'),
     url(r'^(?P<curp>\w+)/$', views.PacientePorCurpView.as_view(), name='paciente_por_curp'),
     url(r'^(?P<paciente_id>\d+)/eventos$', views.EventosView.as_view(), name='eventos'),
     url(r'^(?P<paciente_id>\d+)/intervenciones$', views.IntervencionesView.as_view(), name='intervenciones'),

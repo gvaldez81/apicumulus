@@ -1,14 +1,10 @@
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import *
-from .forms import *
-from .utils import to_json
-from .serializers import *
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from .models import *
+from .serializers import *
 from .utils import raw_sql_search
+from .permissions import PacienteView
 
 # Create your views here.
 @api_view(['GET'])
@@ -32,12 +28,21 @@ def routes(request, format=None):
     return Response({'routes': routes}, status=status.HTTP_200_OK)
 
 
-class PacienteView(APIView):
+@api_view(['POST'])
+def search(request, format=None):
+    query = request.POST.get('query','')
+
+    if not query:
+        return Response({'error:' 'Missing query parameter'}, status=status.HTTP_400_BAD_REQUEST)
+
+    result = raw_sql_search(query)
+
+    return Response(result, status=status.HTTP_200_OK)
+
+
+class PacienteDetailView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        try:
-            paciente = Paciente.objects.get(id=paciente_id)
-        except Paciente.DoesNotExist:
-            response = Response({'error': 'Ese paciente no existe'}, status=status.HTTP_404_NOT_FOUND)
+        paciente = self.get_ctapac(paciente_id)
 
         pac_json = PacienteSerializer(paciente).data
         hosp_json = HospitalSerializer(paciente.hospitales.all(), many=True).data
@@ -49,13 +54,9 @@ class PacienteView(APIView):
         return Response(pac_json, status=status.HTTP_200_OK)
 
 
-class PacientePermisoHospitalView(APIView):
+class PacientePermisoHospitalView(PacienteView):
     def get_objects(self, paciente_id, hospital_id):
-        try:
-            paciente = Paciente.objects.get(id=paciente_id)
-        except Paciente.DoesNotExist:
-            response = Response({'error': 'Ese paciente no existe'}, status=status.HTTP_404_NOT_FOUND)
-            return [response, None, None]
+        paciente = self.get_ctapac(paciente_id)
 
         try:
             hospital = Hospital.objects.get(id=hospital_id)
@@ -82,23 +83,17 @@ class PacientePermisoHospitalView(APIView):
         return Response({'mensaje': 'Se removio el permiso al hospital'}, status=status.HTTP_200_OK)
 
 
-class PacientePorCurpView(APIView):
+class PacientePorCurpView(PacienteView):
     def get(self, request, curp, format=None):
-        try:
-            paciente = Paciente.objects.get(curp=curp)
-        except Paciente.DoesNotExist:
-            response = Response({'error': 'Ese paciente no existe'}, status=status.HTTP_404_NOT_FOUND)
+        paciente = self.get_ctapac(paciente_id)
 
         return Response({'id': paciente.id}, status=status.HTTP_200_OK)
 
 
 # obtiene el paciente solo si el hospital tiene permisos
-class PacienteTieneHospitalView(APIView):
+class PacienteTieneHospitalView(PacienteView):
     def get(self, request, curp, hospital_id, format=None):
-        try:
-            paciente = Paciente.objects.get(curp=curp)
-        except Paciente.DoesNotExist:
-            return Response({'error': 'Ese paciente no existe'}, status=status.HTTP_404_NOT_FOUND)
+        paciente = self.get_ctapac(paciente_id)
 
         try:
             hospital = paciente.hospitales.get(id=hospital_id)
@@ -108,9 +103,10 @@ class PacienteTieneHospitalView(APIView):
         return Response({'id': paciente.id}, status=status.HTTP_200_OK)
 
 
-class EventosView(APIView):
+class EventosView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        eventos = Evento.objects.filter(paciente=paciente_id)
+        paciente = self.get_ctapac(paciente_id)
+        eventos = Evento.objects.filter(paciente=paciente)
 
         if not eventos:
             return JsonResponse({'warning': 'Paciente sin eventos'}, status=status.HTTP_204_NO_CONTENT)
@@ -145,9 +141,10 @@ class EventosView(APIView):
         return Response(eventos_json, status=status.HTTP_200_OK)
 
 
-class HistoriaView(APIView):
+class HistoriaView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        historial = Historia.objects.filter(paciente=paciente_id)
+        paciente = self.get_ctapac(paciente_id)
+        historial = Historia.objects.filter(paciente=paciente)
 
         if not historial:
             return JsonResponse({'warning': 'Paciente sin historia'}, status=status.HTTP_204_NO_CONTENT)
@@ -156,9 +153,10 @@ class HistoriaView(APIView):
         return Response(hist_json, status=status.HTTP_200_OK)
 
 
-class AlergiasView(APIView):
+class AlergiasView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        alergias = Alergia.objects.filter(paciente=paciente_id)
+        paciente = self.get_ctapac(paciente_id)
+        alergias = Alergia.objects.filter(paciente=paciente)
 
         if not alergias:
             return Response({'warning': 'Paciente sin alergias'}, status=status.HTTP_204_NO_CONTENT)
@@ -167,6 +165,7 @@ class AlergiasView(APIView):
         return Response(aler_json, status=status.HTTP_200_OK)
 
     def post(self, request, paciente_id, format=None):
+        self.get_ctapac(paciente_id)
         serializer = AlergiaSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -176,9 +175,10 @@ class AlergiasView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class DiagnosticosView(APIView):
+class DiagnosticosView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        diags = Diagnostico.objects.filter(paciente=paciente_id)
+        paciente = self.get_ctapac(paciente_id)
+        diags = Diagnostico.objects.filter(paciente=paciente)
 
         if not diags:
             return JsonResponse({'warning': 'Paciente sin diagnosticos'}, status=status.HTTP_204_NO_CONTENT)
@@ -187,9 +187,10 @@ class DiagnosticosView(APIView):
         return Response(diag_json, status=status.HTTP_200_OK)
 
 
-class IntervencionesView(APIView):
+class IntervencionesView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        intervenciones = Intervencion.objects.filter(paciente=paciente_id)
+        paciente = self.get_ctapac(paciente_id)
+        intervenciones = Intervencion.objects.filter(paciente=paciente)
 
         if not intervenciones:
             return JsonResponse({'warning': 'Paciente sin intervenciones'}, status=status.HTTP_204_NO_CONTENT)
@@ -198,9 +199,10 @@ class IntervencionesView(APIView):
         return Response(inter_json, status=status.HTTP_200_OK)
 
 
-class MedicamentosView(APIView):
+class MedicamentosView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        medicamentos = Medicamento.objects.filter(paciente=paciente_id)
+        paciente = self.get_ctapac(paciente_id)
+        medicamentos = Medicamento.objects.filter(paciente=paciente)
 
         if not medicamentos:
             return JsonResponse({'warning': 'Paciente sin medicamentos'}, status=status.HTTP_204_NO_CONTENT)
@@ -209,6 +211,7 @@ class MedicamentosView(APIView):
         return Response(meds_json, status=status.HTTP_200_OK)
 
     def post(self, request, paciente_id, format=None):
+        paciente = self.get_ctapac(paciente_id)
         serializer = MedicamentoSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -218,9 +221,10 @@ class MedicamentosView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class TomasSignosView(APIView):
+class TomasSignosView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        tomas = Toma.objects.filter(paciente=paciente_id)
+        paciente = self.get_ctapac(paciente_id)
+        tomas = Toma.objects.filter(paciente=paciente)
 
         if not tomas:
             return JsonResponse({'warning': 'Paciente sin tomas de signos vitales'}, status=status.HTTP_204_NO_CONTENT)
@@ -235,9 +239,10 @@ class TomasSignosView(APIView):
         return Response(tomas_json, status=status.HTTP_200_OK)
 
 
-class RecetasView(APIView):
+class RecetasView(PacienteView):
     def get(self, request, paciente_id, format=None):
-        recetas = Receta.objects.filter(paciente=paciente_id)
+        paciente = self.get_ctapac(paciente_id)
+        recetas = Receta.objects.filter(paciente=paciente)
 
         if not recetas:
             return Response({'warning': 'Paciente sin recetas'}, status=status.HTTP_204_NO_CONTENT)
@@ -250,14 +255,3 @@ class RecetasView(APIView):
             receta_json['medicamentos'] = meds_json
 
         return Response(recetas_json, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
-def search(request, format=None):
-    query = request.POST.get('query','')
-
-    if not query:
-        return Response({'error:' 'Missing query parameter'}, status=status.HTTP_400_BAD_REQUEST)
-
-    result = raw_sql_search(query)
-
-    return Response(result, status=status.HTTP_200_OK)

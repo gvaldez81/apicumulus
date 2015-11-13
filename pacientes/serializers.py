@@ -2,6 +2,7 @@ from .models import *
 from rest_framework import serializers
 
 class PacienteSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
     class Meta:
         model = Paciente
         exclude = ()
