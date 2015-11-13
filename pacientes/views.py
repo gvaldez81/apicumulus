@@ -4,11 +4,34 @@ from .models import *
 from .forms import *
 from .utils import to_json
 from .serializers import *
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.decorators import api_view
+from .utils import raw_sql_search
 
 # Create your views here.
+@api_view(['GET'])
+def routes(request, format=None):
+    routes = [
+        '/search/',
+        '/pacientes/<curp>/',
+        '/pacientes/<curp>/hospital/<hospital_id>/',
+        '/pacientes/<paciente_id>/',
+        '/pacientes/<paciente_id>/alergias',
+        '/pacientes/<paciente_id>/diagnosticos',
+        '/pacientes/<paciente_id>/eventos',
+        '/pacientes/<paciente_id>/historia',
+        '/pacientes/<paciente_id>/hospital/<hospital_id>/',
+        '/pacientes/<paciente_id>/intervenciones',
+        '/pacientes/<paciente_id>/medicamentos',
+        '/pacientes/<paciente_id>/recetas',
+        '/pacientes/<paciente_id>/tomas_signos',
+    ]
+
+    return Response({'routes': routes}, status=status.HTTP_200_OK)
+
+
 class PacienteView(APIView):
     def get(self, request, paciente_id, format=None):
         try:
@@ -60,7 +83,7 @@ class PacientePermisoHospitalView(APIView):
 
 
 class PacientePorCurpView(APIView):
-    def get(self, request, curp):
+    def get(self, request, curp, format=None):
         try:
             paciente = Paciente.objects.get(curp=curp)
         except Paciente.DoesNotExist:
@@ -71,7 +94,7 @@ class PacientePorCurpView(APIView):
 
 # obtiene el paciente solo si el hospital tiene permisos
 class PacienteTieneHospitalView(APIView):
-    def get(self, request, curp, hospital_id):
+    def get(self, request, curp, hospital_id, format=None):
         try:
             paciente = Paciente.objects.get(curp=curp)
         except Paciente.DoesNotExist:
@@ -86,7 +109,7 @@ class PacienteTieneHospitalView(APIView):
 
 
 class EventosView(APIView):
-    def get(self, request, paciente_id):
+    def get(self, request, paciente_id, format=None):
         eventos = Evento.objects.filter(paciente=paciente_id)
 
         if not eventos:
@@ -123,7 +146,7 @@ class EventosView(APIView):
 
 
 class HistoriaView(APIView):
-    def get(self, request, paciente_id):
+    def get(self, request, paciente_id, format=None):
         historial = Historia.objects.filter(paciente=paciente_id)
 
         if not historial:
@@ -134,7 +157,7 @@ class HistoriaView(APIView):
 
 
 class AlergiasView(APIView):
-    def get(self, request, paciente_id):
+    def get(self, request, paciente_id, format=None):
         alergias = Alergia.objects.filter(paciente=paciente_id)
 
         if not alergias:
@@ -143,7 +166,7 @@ class AlergiasView(APIView):
         aler_json = AlergiaSerializer(alergias, many=True).data
         return Response(aler_json, status=status.HTTP_200_OK)
 
-    def post(self, request, paciente_id):
+    def post(self, request, paciente_id, format=None):
         serializer = AlergiaSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -154,7 +177,7 @@ class AlergiasView(APIView):
 
 
 class DiagnosticosView(APIView):
-    def get(self, request, paciente_id):
+    def get(self, request, paciente_id, format=None):
         diags = Diagnostico.objects.filter(paciente=paciente_id)
 
         if not diags:
@@ -165,7 +188,7 @@ class DiagnosticosView(APIView):
 
 
 class IntervencionesView(APIView):
-    def get(self, request, paciente_id):
+    def get(self, request, paciente_id, format=None):
         intervenciones = Intervencion.objects.filter(paciente=paciente_id)
 
         if not intervenciones:
@@ -176,7 +199,7 @@ class IntervencionesView(APIView):
 
 
 class MedicamentosView(APIView):
-    def get(self, request, paciente_id):
+    def get(self, request, paciente_id, format=None):
         medicamentos = Medicamento.objects.filter(paciente=paciente_id)
 
         if not medicamentos:
@@ -185,7 +208,7 @@ class MedicamentosView(APIView):
         meds_json = MedicamentoSerializer(medicamentos, many=True).data
         return Response(meds_json, status=status.HTTP_200_OK)
 
-    def post(self, request, paciente_id):
+    def post(self, request, paciente_id, format=None):
         serializer = MedicamentoSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -196,7 +219,7 @@ class MedicamentosView(APIView):
 
 
 class TomasSignosView(APIView):
-    def get(self, request, paciente_id):
+    def get(self, request, paciente_id, format=None):
         tomas = Toma.objects.filter(paciente=paciente_id)
 
         if not tomas:
@@ -213,7 +236,7 @@ class TomasSignosView(APIView):
 
 
 class RecetasView(APIView):
-    def get(self, request, paciente_id):
+    def get(self, request, paciente_id, format=None):
         recetas = Receta.objects.filter(paciente=paciente_id)
 
         if not recetas:
@@ -227,3 +250,14 @@ class RecetasView(APIView):
             receta_json['medicamentos'] = meds_json
 
         return Response(recetas_json, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def search(request, format=None):
+    query = request.POST.get('query','')
+
+    if not query:
+        return Response({'error:' 'Missing query parameter'}, status=status.HTTP_400_BAD_REQUEST)
+
+    result = raw_sql_search(query)
+
+    return Response(result, status=status.HTTP_200_OK)

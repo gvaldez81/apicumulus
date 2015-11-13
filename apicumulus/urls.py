@@ -16,9 +16,16 @@ Including another URLconf
 from django.conf.urls import include, url
 from django.contrib import admin
 
+from rest_framework.urlpatterns import format_suffix_patterns
+
 from pacientes import urls as pac_urls
+from pacientes.views import search, routes
 
 urlpatterns = [
+    url(r'^search/?$', search, name='search'),
     url(r'^admin/', include(admin.site.urls)),
     url(r'pacientes/', include(pac_urls)),
+    url(r'', routes, name='routes'),
 ]
+
+urlpatterns = format_suffix_patterns(urlpatterns)
