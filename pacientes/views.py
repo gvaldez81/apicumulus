@@ -1,6 +1,8 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
 from .models import *
 from .serializers import *
 from .utils import raw_sql_search
@@ -38,6 +40,30 @@ def search(request, format=None):
     result = raw_sql_search(query)
 
     return Response(result, status=status.HTTP_200_OK)
+
+
+@api_view(['GET','POST'])
+def login(request, format=None):
+    if request.method == 'POST':
+        username = request.POST.get('username','')
+        password = request.POST.get('password','')
+
+        if not username or not password:
+            return Response({'message': 'Incorrect params'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(username=username, password=password)
+
+        if not user:
+            return Response({'message': 'No such user'}, status=status.HTTP_404_NOT_FOUND)
+    else:
+        if request.user.is_authenticated():
+            user = request.user
+        else:
+            return Response({'message': 'No params'}, status=status.HTTP_400_BAD_REQUEST)
+
+    token, created = Token.objects.get_or_create(user=user)
+
+    return Response({'token': token.key}, status=status.HTTP_200_OK)
 
 
 class PacienteDetailView(PacienteView):
@@ -229,11 +255,11 @@ class TomasSignosView(PacienteView):
         if not tomas:
             return JsonResponse({'warning': 'Paciente sin tomas de signos vitales'}, status=status.HTTP_204_NO_CONTENT)
 
-        tomas_json = to_json(tomas, True)
+        tomas_json = TomaSerializer(tomas, many=True).data
 
         for toma_json in tomas_json:
             signos = SignoVital.objects.filter(toma=toma_json['id'])
-            signos_json = to_json(signos, True)
+            signos_json = SignoVitalSerializer(signos, many=True).data
             toma_json['signos'] = signos_json
 
         return Response(tomas_json, status=status.HTTP_200_OK)
