@@ -1,4 +1,6 @@
 import json
+import random
+import string
 from django.core import serializers
 from django.db import connection
 from .queries import search
@@ -49,3 +51,6 @@ def raw_sql_search(query):
     } for row in cursor.fetchall()]
 
     return result
+
+def secret_key_gen():
+    return "".join([random.SystemRandom().choice(string.digits + string.letters) for i in xrange(32)])

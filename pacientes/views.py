@@ -5,8 +5,8 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from .models import *
 from .serializers import *
-from .utils import raw_sql_search
-from .permissions import PacienteView
+from .utils import raw_sql_search, secret_key_gen
+from .permissions import PacienteView, isApp, AppView
 
 # Create your views here.
 @api_view(['GET'])
@@ -29,7 +29,6 @@ def routes(request, format=None):
 
     return Response({'routes': routes}, status=status.HTTP_200_OK)
 
-
 @api_view(['POST'])
 def search(request, format=None):
     query = request.POST.get('query','')
@@ -41,7 +40,6 @@ def search(request, format=None):
 
     return Response(result, status=status.HTTP_200_OK)
 
-
 @api_view(['GET','POST'])
 def login(request, format=None):
     if request.method == 'POST':
@@ -52,7 +50,6 @@ def login(request, format=None):
             return Response({'message': 'Incorrect params'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = authenticate(username=username, password=password)
-
         if not user:
             return Response({'message': 'No such user'}, status=status.HTTP_404_NOT_FOUND)
     else:
@@ -65,6 +62,30 @@ def login(request, format=None):
 
     return Response({'token': token.key}, status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+def apptoken(request, format=None):
+    username = request.POST.get('username','')
+    password = request.POST.get('password','')
+
+    if not username or not password:
+        return Response({'message': 'Incorrect params'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(username=username, password=password)
+    if not user:
+        return Response({'message': 'No such user'}, status=status.HTTP_404_NOT_FOUND)
+
+    if isApp(user):
+        return login(request)
+    else:
+        return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+class AppResetKeyView(AppView):
+    def post(self, request, format=None):
+        key = secret_key_gen()
+        request.user.set_password(key)
+        request.user.save()
+        print key
+        return Response({'key':key},status=status.HTTP_205_RESET_CONTENT)
 
 class PacienteDetailView(PacienteView):
     def get(self, request, paciente_id, format=None):
@@ -78,7 +99,6 @@ class PacienteDetailView(PacienteView):
         pac_json['historia'] = hist_json
 
         return Response(pac_json, status=status.HTTP_200_OK)
-
 
 class PacientePermisoHospitalView(PacienteView):
     def get_objects(self, paciente_id, hospital_id):
@@ -108,13 +128,11 @@ class PacientePermisoHospitalView(PacienteView):
         paciente.hospitales.remove(hospital)
         return Response({'mensaje': 'Se removio el permiso al hospital'}, status=status.HTTP_200_OK)
 
-
 class PacientePorCurpView(PacienteView):
     def get(self, request, curp, format=None):
         paciente = self.get_ctapac(paciente_id)
 
         return Response({'id': paciente.id}, status=status.HTTP_200_OK)
-
 
 # obtiene el paciente solo si el hospital tiene permisos
 class PacienteTieneHospitalView(PacienteView):
@@ -127,7 +145,6 @@ class PacienteTieneHospitalView(PacienteView):
             return Response({'error': 'Ese hospital no tiene permisos'}, status=status.HTTP_200_OK)
 
         return Response({'id': paciente.id}, status=status.HTTP_200_OK)
-
 
 class EventosView(PacienteView):
     def get(self, request, paciente_id, format=None):
@@ -166,7 +183,6 @@ class EventosView(PacienteView):
 
         return Response(eventos_json, status=status.HTTP_200_OK)
 
-
 class HistoriaView(PacienteView):
     def get(self, request, paciente_id, format=None):
         paciente = self.get_ctapac(paciente_id)
@@ -177,7 +193,6 @@ class HistoriaView(PacienteView):
 
         hist_json = HistoriaSerializer(historial, many=True).data
         return Response(hist_json, status=status.HTTP_200_OK)
-
 
 class AlergiasView(PacienteView):
     def get(self, request, paciente_id, format=None):
@@ -200,7 +215,6 @@ class AlergiasView(PacienteView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class DiagnosticosView(PacienteView):
     def get(self, request, paciente_id, format=None):
         paciente = self.get_ctapac(paciente_id)
@@ -212,7 +226,6 @@ class DiagnosticosView(PacienteView):
         diag_json = DiagnosticoSerializer(diags, many=True).data
         return Response(diag_json, status=status.HTTP_200_OK)
 
-
 class IntervencionesView(PacienteView):
     def get(self, request, paciente_id, format=None):
         paciente = self.get_ctapac(paciente_id)
@@ -223,7 +236,6 @@ class IntervencionesView(PacienteView):
 
         inter_json = IntervencionSerializer(intervenciones, many=True).data
         return Response(inter_json, status=status.HTTP_200_OK)
-
 
 class MedicamentosView(PacienteView):
     def get(self, request, paciente_id, format=None):
@@ -246,7 +258,6 @@ class MedicamentosView(PacienteView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class TomasSignosView(PacienteView):
     def get(self, request, paciente_id, format=None):
         paciente = self.get_ctapac(paciente_id)
@@ -263,7 +274,6 @@ class TomasSignosView(PacienteView):
             toma_json['signos'] = signos_json
 
         return Response(tomas_json, status=status.HTTP_200_OK)
-
 
 class RecetasView(PacienteView):
     def get(self, request, paciente_id, format=None):

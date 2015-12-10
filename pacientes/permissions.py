@@ -16,3 +16,10 @@ class PacienteView(APIView):
         pac = get_object_or_404(Paciente, id=paciente_id)
         self.check_object_permissions(self.request, pac)
         return pac
+
+class AppView(APIView):
+    permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser)
+    authentication_classes = (TokenAuthentication, )
+
+def isApp(user):
+    return user.is_staff or user.is_superuser

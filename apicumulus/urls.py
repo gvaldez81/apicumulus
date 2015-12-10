@@ -19,7 +19,7 @@ from django.contrib import admin
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from pacientes import urls as pac_urls
-from pacientes.views import search, routes, login
+from pacientes.views import search, routes, login, apptoken, AppResetKeyView
 
 urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
@@ -27,6 +27,8 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^pacientes/', include(pac_urls)),
     url(r'^login$', login, name='login'),
+    url(r'^apptoken$', apptoken, name='apptoken'),
+    url(r'^resetkey$', AppResetKeyView.as_view(), name='resetkey'),
     url(r'^$', routes, name='routes'),
 ]
 

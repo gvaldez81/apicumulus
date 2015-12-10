@@ -134,3 +134,11 @@ class SignoVital(models.Model):
 
     def __str__(self):
         return "%d %s" % (self.id, self.valor)
+
+class App(models.Model):
+    app = models.CharField(max_length=50, default='App')
+    credenciales = models.OneToOneField(User, related_name='+')
+    admins = models.ManyToManyField(User)
+
+    def __str__(self):
+        return "%s" % self.app
