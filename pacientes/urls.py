@@ -11,7 +11,7 @@ urlpatterns = patterns('',
     url(r'^(?P<paciente_id>\d+)/tomas_signos$', views.TomasSignosView.as_view(), name='tomas_signos'),
     url(r'^(?P<paciente_id>\d+)/medicamentos$', views.MedicamentosView.as_view(), name='medicamentos'),
     url(r'^(?P<paciente_id>\d+)/recetas$', views.RecetasView.as_view(), name='recetas'),
-    url(r'^(?P<paciente_id>\d+)/historia$', views.HistoriaView.as_view(), name='historia'),
+    url(r'^(?P<paciente_id>\d+)/cuestionarios$', views.CuestionarioView.as_view(), name='cuestionarios'),
     #
     url(r'^(?P<paciente_id>\d+)/hospital/(?P<hospital_id>\d+)/$', views.PacientePermisoHospitalView.as_view(), name='paciente_permiso_hospital'),
     url(r'^(?P<curp>\w+)/hospital/(?P<hospital_id>\d+)/$', views.PacienteTieneHospitalView.as_view(), name='paciente_tiene_hospital'),
