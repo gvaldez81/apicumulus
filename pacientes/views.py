@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 from .models import *
 from .serializers import *
 from .utils import raw_sql_search, secret_key_gen
-from .permissions import PacienteView, isApp, AppView
+from .permissions import PacienteView, isApp
 
 # Create your views here.
 @api_view(['GET'])
@@ -61,31 +61,6 @@ def login(request, format=None):
     token, created = Token.objects.get_or_create(user=user)
 
     return Response({'token': token.key}, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
-def apptoken(request, format=None):
-    username = request.POST.get('username','')
-    password = request.POST.get('password','')
-
-    if not username or not password:
-        return Response({'message': 'Incorrect params'}, status=status.HTTP_400_BAD_REQUEST)
-
-    user = authenticate(username=username, password=password)
-    if not user:
-        return Response({'message': 'No such user'}, status=status.HTTP_404_NOT_FOUND)
-
-    if isApp(user):
-        return login(request)
-    else:
-        return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-
-class AppResetKeyView(AppView):
-    def post(self, request, format=None):
-        key = secret_key_gen()
-        request.user.set_password(key)
-        request.user.save()
-        print key
-        return Response({'key':key},status=status.HTTP_205_RESET_CONTENT)
 
 class PacienteDetailView(PacienteView):
     def get(self, request, paciente_id, format=None):

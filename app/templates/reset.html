@@ -1,0 +1,12 @@
+<h1>Reset Api Key</h1>
+
+<form action="resetkey" method="post">
+    {% csrf_token %}
+    <select name="comboApp" id="comboApp">
+        {% for app in apps %}
+        <option value={{ app.app }}>{{app.app}}</option>
+        {% endfor %}
+    </select>
+    <input type="submit" name="submit" id="submit" value="Reset" />
+    <h5>New Key: {{key}}</h5>
+</form>
