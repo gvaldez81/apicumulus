@@ -12,9 +12,9 @@ class HospitalSerializer(serializers.ModelSerializer):
         model = Hospital
         exclude = ()
 
-class HistoriaSerializer(serializers.ModelSerializer):
+class CuestionarioSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Historia
+        model = Cuestionario
         exclude = ()
 
 class EventoSerializer(serializers.ModelSerializer):

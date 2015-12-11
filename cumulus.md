@@ -63,7 +63,7 @@ API Cumulus
 <tr><td> medico </td><td> String </td><td> Nombre completo del Medico </td></tr>
 <tr><td> cedula </td><td> String </td><td> Cedula profesional del Medico </td></tr>
 <tr><td> especialidad </td><td> String </td><td> Especialidad del Medico </td></tr>
-<tr><td> tipo </td><td> String, “C”, “A” o “H” </td><td> Tipo de evento: <b>C</b>onsulta, <b>A</b>mbulatorio, <b>H</b>ospitalizacion o <b>U</b>rgencia </td></tr>
+<tr><td> tipo </td><td> String, “C”, “A”, “H” o "U" </td><td> Tipo de evento: <b>C</b>onsulta, <b>A</b>mbulatorio, <b>H</b>ospitalizacion o <b>U</b>rgencia </td></tr>
 <tr><td> fechaInicio </td><td> String, formato “yyyy-mm-ddTHH:MM:SSZ” </td><td> Fecha en que se comenzo el evento </td></tr>
 <tr><td> fechaFin </td><td> String, formato “yyyy-mm-ddTHH:MM:SSZ” </td><td> Fecha en que se finalizo el evento </td></tr>
 <tr><td> motivo </td><td> String </td><td> Una descripcion breve del motivo del evento </td></tr>
@@ -77,6 +77,7 @@ API Cumulus
 <tr><td> • nombre </td><td> String </td><td> Nombre de la intervencion </td></tr>
 <tr><td> • codigo </td><td> String </td><td> Codigo CIE9V3 (ICD9V3) de la intervencion </td></tr>
 <tr><td> recetas </td><td> N cantidad con la siguiente informacion </td><td> Recetas medicas  </td></tr>
+<tr><td> • fecha </td><td> String, formato “yyyy-mm-ddTHH:MM:SSZ” </td><td> Fecha en que se recetaron los medicamentos </td></tr>
 <tr><td> • nota </td><td> String </td><td> Indicaciones extra sobre la receta medica </td></tr>
 <tr><td> • medicamentos </td><td> N cantidad con la siguiente informacion </td><td> Lista de medicamentos de la Receta </td></tr>
 <tr><td> &nbsp; ° nombre </td><td> String </td><td> Nombre de medicamento </td></tr>
@@ -86,6 +87,7 @@ API Cumulus
 <tr><td> &nbsp; ° via </td><td> String </td><td> Via de adminstracion </td></tr>
 <tr><td> &nbsp; ° dosis </td><td> String </td><td> Dosis del medicamento </td></tr>
 <tr><td> diagnosticos </td><td> N cantidad con la siguiente informacion </td><td> Diagnosticos del Paciente </td></tr>
+<tr><td> • fecha </td><td> String, formato “yyyy-mm-ddTHH:MM:SSZ” </td><td> Fecha en que se realizo el diagnostico </td></tr>
 <tr><td> • nombre </td><td> String </td><td> Nombre del diagnostico </td></tr>
 <tr><td> • codigo </td><td> String </td><td> Codigo de CIE10 (ICD10CM6) del padecimiento </td></tr>
 <tr><td> cuestionarios </td><td> N cantidad con la siguiente informacion </td><td> Cuestionarios del paciente </td></tr>
@@ -114,7 +116,9 @@ API Cumulus
           "unidad": "kg"
         },
         // ...
-      ],
+      ]
+    },
+    // ...
   ],
   "intervenciones": [
     {

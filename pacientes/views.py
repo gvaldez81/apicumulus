@@ -19,7 +19,7 @@ def routes(request, format=None):
         '/pacientes/<paciente_id>/alergias',
         '/pacientes/<paciente_id>/diagnosticos',
         '/pacientes/<paciente_id>/eventos',
-        '/pacientes/<paciente_id>/historia',
+        '/pacientes/<paciente_id>/cuestionarios',
         '/pacientes/<paciente_id>/hospital/<hospital_id>/',
         '/pacientes/<paciente_id>/intervenciones',
         '/pacientes/<paciente_id>/medicamentos',
@@ -68,10 +68,8 @@ class PacienteDetailView(PacienteView):
 
         pac_json = PacienteSerializer(paciente).data
         hosp_json = HospitalSerializer(paciente.hospitales.all(), many=True).data
-        hist_json = HistoriaSerializer(Historia.objects.filter(paciente=paciente), many=True).data
 
         pac_json['hospitales'] = hosp_json
-        pac_json['historia'] = hist_json
 
         return Response(pac_json, status=status.HTTP_200_OK)
 
@@ -158,16 +156,16 @@ class EventosView(PacienteView):
 
         return Response(eventos_json, status=status.HTTP_200_OK)
 
-class HistoriaView(PacienteView):
+class CuestionarioView(PacienteView):
     def get(self, request, paciente_id, format=None):
         paciente = self.get_ctapac(paciente_id)
-        historial = Historia.objects.filter(paciente=paciente)
+        cuestionario = Cuestionario.objects.filter(paciente=paciente)
 
-        if not historial:
-            return JsonResponse({'warning': 'Paciente sin historia'}, status=status.HTTP_204_NO_CONTENT)
+        if not cuestionario:
+            return JsonResponse({'warning': 'Paciente sin cuestionarios contestados'}, status=status.HTTP_204_NO_CONTENT)
 
-        hist_json = HistoriaSerializer(historial, many=True).data
-        return Response(hist_json, status=status.HTTP_200_OK)
+        cuest_json = CuestionarioSerializer(cuestionario, many=True).data
+        return Response(cuest_json, status=status.HTTP_200_OK)
 
 class AlergiasView(PacienteView):
     def get(self, request, paciente_id, format=None):
