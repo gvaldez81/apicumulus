@@ -34,7 +34,7 @@ class Hospital(models.Model):
         return self.nombre
 
 class Paciente(models.Model):
-    owner = models.OneToOneField(User)
+    owner = models.OneToOneField(User, null=True)
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     apellidoSegundo = models.CharField(max_length=50)

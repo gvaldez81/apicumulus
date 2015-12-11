@@ -6,27 +6,30 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from .models import *
 from .serializers import *
-from .utils import raw_sql_search, secret_key_gen
+from .utils import raw_sql_search, secret_key_gen, get_url
 from .permissions import PacienteView, EventoView, isApp
 
 # Create your views here.
 @api_view(['GET'])
 def routes(request, format=None):
-    routes = [
-        '/search/',
-        '/pacientes/<curp>/',
-        '/pacientes/<curp>/hospital/<hospital_id>/',
-        '/pacientes/<curp>/',
-        '/pacientes/<curp>/alergias',
-        '/pacientes/<curp>/diagnosticos',
-        '/pacientes/<curp>/eventos',
-        '/pacientes/<curp>/cuestionarios',
-        '/pacientes/<curp>/hospital/<hospital_id>/',
-        '/pacientes/<curp>/intervenciones',
-        '/pacientes/<curp>/medicamentos',
-        '/pacientes/<curp>/recetas',
-        '/pacientes/<curp>/tomas_signos',
+    rs = [
+        'search',
+        'login',
+        'app/apptoken',
+        'pacientes',
+        'pacientes/{curp}/',
+        'pacientes/{curp}/medicamentos',
+        'pacientes/{curp}/alergias',
+        'pacientes/{curp}/eventos',
+        'pacientes/{curp}/eventos/{evento_id}',
+        'pacientes/{curp}/eventos/{evento_id}/diagnosticos',
+        'pacientes/{curp}/eventos/{evento_id}/cuestionarios',
+        'pacientes/{curp}/eventos/{evento_id}/intervenciones',
+        'pacientes/{curp}/eventos/{evento_id}/recetas',
+        'pacientes/{curp}/eventos/{evento_id}/tomas_signos',
     ]
+
+    routes = [get_url(request.get_host(),r) for r in rs]
 
     return Response({'routes': routes}, status=status.HTTP_200_OK)
 
@@ -63,6 +66,48 @@ def login(request, format=None):
 
     return Response({'token': token.key}, status=status.HTTP_200_OK)
 
+class PacientesView(PacienteView):
+    def post(self, request, format=None):
+        alers_data = request.data.pop('alergias', [])
+        pac_serial = PacienteSerializer(data=request.data)
+
+        errors = {}
+
+        if pac_serial.is_valid():
+            paciente = pac_serial.save()
+
+            if not alers_data:
+                response = {
+                    'msj': 'Paciente creado',
+                    'id': paciente.id
+                }
+                return Response(response, status=status.HTTP_201_CREATED)
+
+            for aler in alers_data:
+                aler['paciente'] = paciente.id
+
+            aler_serial = AlergiaSerializer(data=alers_data, many=True)
+
+            if aler_serial.is_valid():
+                aler_serial.save()
+                response = {
+                    'msj': 'Paciente creado',
+                    'id': paciente.id,
+                    'url': get_url(request.get_host(), "pacientes/%s" % paciente.curp)
+                }
+                return Response(response, status=status.HTTP_201_CREATED)
+            else:
+                paciente.delete()
+                errors = aler_serial.errors
+        else:
+            errors = pac_serial.errors
+
+        response = {
+            'msj': 'Error en los datos',
+            'errores': errors
+        }
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
 class PacienteDetailView(PacienteView):
     def get(self, request, curp, format=None):
         paciente = self.get_pac(curp)
@@ -73,7 +118,25 @@ class PacienteDetailView(PacienteView):
 
         return Response(pac_json, status=status.HTTP_200_OK)
 
-    # def put(self, request, c)
+    def put(self, request, curp, format=None):
+        paciente = self.get_pac(curp)
+
+        pac_serial = PacienteSerializer(paciente, data=request.data)
+
+        if pac_serial.is_valid():
+            paciente = pac_serial.save()
+            response = {
+                'msj': 'Paciente actualizado',
+                'id': paciente.id,
+                'url': get_url(request.get_host(), "pacientes/%s" % paciente.curp)
+            }
+            return Response(response, status=status.HTTP_202_ACCEPTED)
+
+        response = {
+            'msj': 'Error en los datos',
+            'errores': pac_serial.errors
+        }
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Relacionado a eventos
@@ -127,6 +190,95 @@ class EventoDetailView(EventoView):
         evento_json['cuestionarios'] = cuest_json
 
         return Response(evento_json, status=status.HTTP_200_OK)
+
+    def post(self, request, curp, evento_id, format=None):
+        paciente = self.get_pac(curp)
+
+        tomas_data = request.data.pop('tomas', [])
+        inter_data = request.data.pop('intervenciones', [])
+        recet_data = request.data.pop('recetas', [])
+        # medis_data = recet_data.pop('medicamentos', [])
+        diags_data = request.data.pop('diagnosticos', [])
+        cuest_data = request.data.pop('cuestionarios', [])
+
+        eve_serial = PacienteSerializer(data=request.data)
+
+        errors = {}
+
+        if not eve_serial.is_valid():
+            response = {
+                'msj': 'Error en los datos',
+                'errores': eve_serial.errors
+            }
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        evento = eve_serial.save()
+        objs_queue.append(evento)
+
+        # Interacciones
+        if inter_data:
+            inter_serial = IntervencionSerializer(data=inter_data, many=True)
+
+            if not inter_serial.is_valid():
+                response = {
+                    'msj': 'Error en los datos',
+                    'errores': inter_serial.errors
+                }
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+            inter = inter_serial.save()
+            objs_queue.append(inter)
+
+        # Diagnosticos
+        if diags_data:
+            diags_serial = DiagnosticoSerializer(data=diags_data, many=True)
+
+            if not diags_serial.is_valid():
+                response = {
+                    'msj': 'Error en los datos',
+                    'errores': diags_serial.errors
+                }
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+            diags = diags_serial.save()
+
+        # Cuestionarios
+        if cuest_data:
+            cuest_serial = DiagnosticoSerializer(data=cuest_data, many=True)
+
+            if not cuest_serial.is_valid():
+                response = {
+                    'msj': 'Error en los datos',
+                    'errores': cuest_serial.errors
+                }
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+            cuest_serial.save()
+
+        for toma_data in tomas_data:
+            signs_data = toma_data.pop('signos', [])
+
+            if not signs_data:
+                response = {
+                    'msj': 'Error en los datos',
+                    'errores': ['No hay signos vitales']
+                }
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+            toma_serial = TomaSerializer(data=toma_data)
+
+            if not cuest_serial.is_valid():
+                response = {
+                    'msj': 'Error en los datos',
+                    'errores': cuest_serial.errors
+                }
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+            toma = toma_serial.save()
+
+
+
+        return Response({'message': 'Aun no esta implementado'}, status=status.HTTP_201_CREATED)
 
 # Diagnosticos del evento
 class DiagnosticosView(EventoView):

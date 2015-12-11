@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework.views import APIView
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import TokenAuthentication, BasicAuthentication
 from .models import Paciente, Evento
 
 class IsOwner(permissions.BasePermission):
@@ -9,8 +9,8 @@ class IsOwner(permissions.BasePermission):
         return obj.owner == request.user
 
 class PacienteView(APIView):
-    permission_classes = (permissions.IsAuthenticated, IsOwner)
-    authentication_classes = (TokenAuthentication, )
+    # permission_classes = (permissions.IsAuthenticated, IsOwner)
+    # authentication_classes = (TokenAuthentication, )
 
     def get_pac(self, curp):
         pac = get_object_or_404(Paciente, curp=curp)

@@ -27,7 +27,7 @@ from app.views import apptoken, AppResetKeyView
 urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^pacientes/', include(pac_urls)),
+    url(r'^pacientes', include(pac_urls)),
     url(r'^app/', include(app_urls)),
     url(r'^pemex/', include(pemex_urls)),
     url(r'^login$', login, name='login'),

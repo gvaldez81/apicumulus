@@ -11,8 +11,8 @@ from .permissions import isApp, AppView
 
 @api_view(['POST'])
 def apptoken(request, format=None):
-    username = request.POST.get('username','')
-    password = request.POST.get('password','')
+    username = request.data.get('username','')
+    password = request.data.get('password','')
 
     if not username or not password:
         return Response({'message': 'Incorrect params'}, status=status.HTTP_400_BAD_REQUEST)

@@ -37,11 +37,11 @@ API Cumulus
   "curp":"GOTA750512MGDRA01",
   "sexo":"M",
   "telefono": "80808080",
-  "telfonoAlt": "8111111111",
+  "telefonoAlt": "8111111111",
   "correo": "ana.maria@prueba.com",
   // Demograficos
-  "calle": "Calle #123"
-  "cp": "67890",
+  "calle": "Calle #123",
+  "codigoPostal": "67890",
   "ciudad": "Monterrey",
   "estado": "Nuevo Leon",
   "pais": "Mexico",

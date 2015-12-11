@@ -11,6 +11,9 @@ ESCAPE_STRING_SEQUENCES = (
     ('+', '&'),
 )
 
+def get_url(hostname, route):
+    return "http://%s/%s" % (hostname, route)
+
 def to_json(objct, multi=False):
     if not multi:
         obj_str = serializers.serialize('json', [objct, ])
