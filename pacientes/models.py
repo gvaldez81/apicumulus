@@ -10,7 +10,7 @@ SEXOS = (
 ALER_TIPO = (
     ('M', 'Medicamento'),
     ('A', 'Ambiente'),
-    ('C', 'Alimentos'),
+    ('C', 'Comida'),
 )
 
 ALER_SEVER = (
@@ -37,6 +37,7 @@ class Paciente(models.Model):
     owner = models.OneToOneField(User)
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
+    apellidoSegundo = models.CharField(max_length=50)
     telefono = models.CharField(max_length=20)
     telefonoAlt = models.CharField(max_length=20)
     correo = models.CharField(max_length=30)
@@ -48,17 +49,18 @@ class Paciente(models.Model):
     ciudad = models.CharField(max_length=30)
     estado = models.CharField(max_length=30)
     pais = models.CharField(max_length=30)
-    hospitales = models.ManyToManyField(Hospital)
+    hospitales = models.ManyToManyField(Hospital, blank=True)
 
     def __str__(self):
-        return "%s %s %s %s" % (self.nombre, self.segundoNombre, self.apellido, self.apellido2)
+        return "%s %s" % (self.nombre, self.apellido)
 
 class Evento(models.Model):
     medico = models.CharField(max_length=50)
     cedula = models.CharField(max_length=50)
     especialidad = models.CharField(max_length=50)
     tipo = models.CharField(choices=EVENT_TIPO, max_length=1)
-    fecha = models.DateTimeField()
+    fechaInicio = models.DateTimeField()
+    fechaFin = models.DateTimeField()
     motivo = models.CharField(max_length=50)
     paciente = models.ForeignKey(Paciente)
 
