@@ -20,15 +20,16 @@ from rest_framework.urlpatterns import format_suffix_patterns
 
 from pacientes import urls as pac_urls
 from app import urls as app_urls
+from pemex import urls as pemex_urls
 from pacientes.views import search, routes, login
 from app.views import apptoken, AppResetKeyView
 
 urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^search/?$', search, name='search'),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^pacientes/', include(pac_urls)),
     url(r'^app/', include(app_urls)),
+    url(r'^pemex/', include(pemex_urls)),
     url(r'^login$', login, name='login'),
     url(r'^$', routes, name='routes'),
 ]

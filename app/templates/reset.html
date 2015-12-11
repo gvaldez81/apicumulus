@@ -4,7 +4,7 @@
     {% csrf_token %}
     <select name="comboApp" id="comboApp">
         {% for app in apps %}
-        <option value={{ app.app }}>{{app.app}}</option>
+        <option value="{{app.credenciales.id}}">{{app.app}}</option>
         {% endfor %}
     </select>
     <input type="submit" name="submit" id="submit" value="Reset" />

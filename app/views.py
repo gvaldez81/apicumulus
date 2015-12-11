@@ -29,7 +29,7 @@ def apptoken(request, format=None):
 class AppResetKeyView(AppView):
     def post(self, request, format=None):
         key = secret_key_gen()
-        keyapp = User.objects.get(username=request.POST.get('comboApp'))
+        keyapp = User.objects.get(id=request.POST.get('comboApp'))
         keyapp.set_password(key)
         keyapp.save()
         apps = App.objects.filter(admins=User.objects.filter(username=request.user.username))

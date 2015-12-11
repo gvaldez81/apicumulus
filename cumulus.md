@@ -7,7 +7,8 @@ API Cumulus
 <table>
 <tr><th> Parametro </th><th> Tipo </th><th> Descripcion </th></tr>
 <tr><td> nombre </td><td> String </td><td> Nombre(s) del Paciente </td></tr>
-<tr><td> apellido </td><td> String </td><td> Apellido(s) del Paciente </td></tr>
+<tr><td> apellido </td><td> String </td><td> Primer Apellido del Paciente </td></tr>
+<tr><td> apellidoSegundo </td><td> String </td><td> Demas Apellidos del Paciente </td></tr>
 <tr><td> telefono </td><td> String </td><td> Telefono de contacto </td></tr>
 <tr><td> telefonoAlt </td><td> String </td><td> Telefono alterno </td></tr>
 <tr><td> correo </td><td> String </td><td> Correo electronico </td></tr>
@@ -30,7 +31,8 @@ API Cumulus
 ```javascript
 {
   "nombre": "Ana Maria",
-  "apellido": "Gonzalez Trevino",
+  "apellido": "Gonzalez",
+  "apellidoSegundo": "Trevino",
   "fechaNacimiento": "1975-05-12",
   "curp":"GOTA750512MGDRA01",
   "sexo":"M",
@@ -104,7 +106,8 @@ API Cumulus
   "cedula": "465146113165",
   "especialidad": "NA",
   "tipo": "C",
-  "fecha": "2015-12-01T08:00:00Z"
+  "fechaInicio": "2015-12-01T08:00:00Z",
+  "fechaFin": "2015-12-01T09:00:00Z",
   "motivo": "Fiebre",
   "tomas": [
     {
@@ -136,7 +139,7 @@ API Cumulus
         {
           "via": "oral",
           "nombre": "Ibuprofeno 400mg",
-          "codigo": "",
+          "codigo": "66-10-00-20-00-03-20",
           "clasificacion": "GPI",
           "via": "oral",
           "indicacion": "cada 6 hrs x 5 días",

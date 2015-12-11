@@ -2,11 +2,12 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.authtoken.models import Token
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from .models import *
 from .serializers import *
 from .utils import raw_sql_search, secret_key_gen
-from .permissions import PacienteView, isApp
+from .permissions import PacienteView, EventoView, isApp
 
 # Create your views here.
 @api_view(['GET'])
@@ -15,16 +16,16 @@ def routes(request, format=None):
         '/search/',
         '/pacientes/<curp>/',
         '/pacientes/<curp>/hospital/<hospital_id>/',
-        '/pacientes/<paciente_id>/',
-        '/pacientes/<paciente_id>/alergias',
-        '/pacientes/<paciente_id>/diagnosticos',
-        '/pacientes/<paciente_id>/eventos',
-        '/pacientes/<paciente_id>/cuestionarios',
-        '/pacientes/<paciente_id>/hospital/<hospital_id>/',
-        '/pacientes/<paciente_id>/intervenciones',
-        '/pacientes/<paciente_id>/medicamentos',
-        '/pacientes/<paciente_id>/recetas',
-        '/pacientes/<paciente_id>/tomas_signos',
+        '/pacientes/<curp>/',
+        '/pacientes/<curp>/alergias',
+        '/pacientes/<curp>/diagnosticos',
+        '/pacientes/<curp>/eventos',
+        '/pacientes/<curp>/cuestionarios',
+        '/pacientes/<curp>/hospital/<hospital_id>/',
+        '/pacientes/<curp>/intervenciones',
+        '/pacientes/<curp>/medicamentos',
+        '/pacientes/<curp>/recetas',
+        '/pacientes/<curp>/tomas_signos',
     ]
 
     return Response({'routes': routes}, status=status.HTTP_200_OK)
@@ -43,8 +44,8 @@ def search(request, format=None):
 @api_view(['GET','POST'])
 def login(request, format=None):
     if request.method == 'POST':
-        username = request.POST.get('username','')
-        password = request.POST.get('password','')
+        username = request.data.get('username','')
+        password = request.data.get('password','')
 
         if not username or not password:
             return Response({'message': 'Incorrect params'}, status=status.HTTP_400_BAD_REQUEST)
@@ -63,65 +64,23 @@ def login(request, format=None):
     return Response({'token': token.key}, status=status.HTTP_200_OK)
 
 class PacienteDetailView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
+    def get(self, request, curp, format=None):
+        paciente = self.get_pac(curp)
 
         pac_json = PacienteSerializer(paciente).data
-        hosp_json = HospitalSerializer(paciente.hospitales.all(), many=True).data
-
-        pac_json['hospitales'] = hosp_json
+        # hosp_json = HospitalSerializer(paciente.hospitales.all(), many=True).data
+        # pac_json['hospitales'] = hosp_json
 
         return Response(pac_json, status=status.HTTP_200_OK)
 
-class PacientePermisoHospitalView(PacienteView):
-    def get_objects(self, paciente_id, hospital_id):
-        paciente = self.get_ctapac(paciente_id)
+    # def put(self, request, c)
 
-        try:
-            hospital = Hospital.objects.get(id=hospital_id)
-        except Hospital.DoesNotExist:
-            response = Response({'error': 'Ese hospital no existe'}, status=status.HTTP_404_NOT_FOUND)
-            return [response, None, None]
 
-        return [None, paciente, hospital]
-
-    def post(self, request, paciente_id, hospital_id, format=None):
-        error, paciente, hospital = self.get_objects(paciente_id, hospital_id)
-        if error:
-            return error
-
-        paciente.hospitales.add(hospital)
-        return Response({'mensaje': 'Se dio permiso al hospital'}, status=status.HTTP_200_OK)
-
-    def delete(self, request, paciente_id, hospital_id, format=None):
-        error, paciente, hospital = self.get_objects(paciente_id, hospital_id)
-        if error:
-            return error
-
-        paciente.hospitales.remove(hospital)
-        return Response({'mensaje': 'Se removio el permiso al hospital'}, status=status.HTTP_200_OK)
-
-class PacientePorCurpView(PacienteView):
-    def get(self, request, curp, format=None):
-        paciente = self.get_ctapac(paciente_id)
-
-        return Response({'id': paciente.id}, status=status.HTTP_200_OK)
-
-# obtiene el paciente solo si el hospital tiene permisos
-class PacienteTieneHospitalView(PacienteView):
-    def get(self, request, curp, hospital_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-
-        try:
-            hospital = paciente.hospitales.get(id=hospital_id)
-        except Hospital.DoesNotExist:
-            return Response({'error': 'Ese hospital no tiene permisos'}, status=status.HTTP_200_OK)
-
-        return Response({'id': paciente.id}, status=status.HTTP_200_OK)
-
+# Relacionado a eventos
+# Lista de Eventos
 class EventosView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
+    def get(self, request, curp, format=None):
+        paciente = self.get_pac(curp)
         eventos = Evento.objects.filter(paciente=paciente)
 
         if not eventos:
@@ -129,115 +88,81 @@ class EventosView(PacienteView):
 
         eventos_json = EventoSerializer(eventos, many=True).data
 
-        for evento_json in eventos_json:
-            # tomas
-            tomas_json = TomaSerializer(Toma.objects.filter(evento=evento_json['id']), many=True).data
-            for toma_json in tomas_json:
-                signos = SignoVital.objects.filter(toma=toma_json['id'])
-                signos_json = SignoVitalSerializer(signos, many=True).data
-                toma_json['signos'] = signos_json
-            evento_json['tomas'] = tomas_json
-
-            # recetas
-            recetas_json = RecetaSerializer(Receta.objects.filter(evento=evento_json['id']), many=True).data
-            for receta_json in recetas_json:
-                meds = Medicamento.objects.filter(receta=receta_json['id'])
-                meds_json = MedicamentoSerializer(meds, many=True).data
-                receta_json['medicamentos'] = meds_json
-            evento_json['recetas'] = recetas_json
-
-            # diagnosticos
-            diags_json = DiagnosticoSerializer(Diagnostico.objects.filter(evento=evento_json['id']), many=True).data
-            evento_json['diagnosticos'] = diags_json
-
-            # intervenciones
-            inter_json = IntervencionSerializer(Intervencion.objects.filter(evento=evento_json['id']), many=True).data
-            evento_json['intervenciones'] = inter_json
-
         return Response(eventos_json, status=status.HTTP_200_OK)
 
-class CuestionarioView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-        cuestionario = Cuestionario.objects.filter(paciente=paciente)
+# Detalles del evento
+class EventoDetailView(EventoView):
+    def get(self, request, curp, evento_id, format=None):
+        paciente = self.get_pac(curp)
+        evento = self.get_evento(evento_id)
 
-        if not cuestionario:
-            return JsonResponse({'warning': 'Paciente sin cuestionarios contestados'}, status=status.HTTP_204_NO_CONTENT)
+        evento_json = EventoSerializer(evento).data
 
-        cuest_json = CuestionarioSerializer(cuestionario, many=True).data
-        return Response(cuest_json, status=status.HTTP_200_OK)
+        # tomas
+        tomas_json = TomaSerializer(Toma.objects.filter(evento=evento), many=True).data
+        for toma_json in tomas_json:
+            signos = SignoVital.objects.filter(toma=toma_json['id'])
+            signos_json = SignoVitalSerializer(signos, many=True).data
+            toma_json['signos'] = signos_json
+        evento_json['tomas'] = tomas_json
 
-class AlergiasView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-        alergias = Alergia.objects.filter(paciente=paciente)
+        # recetas
+        recetas_json = RecetaSerializer(Receta.objects.filter(evento=evento), many=True).data
+        for receta_json in recetas_json:
+            meds = Medicamento.objects.filter(receta=receta_json['id'])
+            meds_json = MedicamentoSerializer(meds, many=True).data
+            receta_json['medicamentos'] = meds_json
+        evento_json['recetas'] = recetas_json
 
-        if not alergias:
-            return Response({'warning': 'Paciente sin alergias'}, status=status.HTTP_204_NO_CONTENT)
+        # diagnosticos
+        diags_json = DiagnosticoSerializer(Diagnostico.objects.filter(evento=evento), many=True).data
+        evento_json['diagnosticos'] = diags_json
 
-        aler_json = AlergiaSerializer(alergias, many=True).data
-        return Response(aler_json, status=status.HTTP_200_OK)
+        # intervenciones
+        inter_json = IntervencionSerializer(Intervencion.objects.filter(evento=evento), many=True).data
+        evento_json['intervenciones'] = inter_json
 
-    def post(self, request, paciente_id, format=None):
-        self.get_ctapac(paciente_id)
-        serializer = AlergiaSerializer(data=request.data)
+        # cuestionarios
+        cuest_json = CuestionarioSerializer(Cuestionario.objects.filter(evento=evento), many=True).data
+        evento_json['cuestionarios'] = cuest_json
 
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(evento_json, status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class DiagnosticosView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-        diags = Diagnostico.objects.filter(paciente=paciente)
+# Diagnosticos del evento
+class DiagnosticosView(EventoView):
+    def get(self, request, curp, evento_id, format=None):
+        paciente = self.get_pac(curp)
+        evento = self.get_evento(evento_id)
+        diags = Diagnostico.objects.filter(paciente=paciente, evento=evento)
 
         if not diags:
-            return JsonResponse({'warning': 'Paciente sin diagnosticos'}, status=status.HTTP_204_NO_CONTENT)
+            return Response({'warning': 'Paciente sin diagnosticos'}, status=status.HTTP_204_NO_CONTENT)
 
         diag_json = DiagnosticoSerializer(diags, many=True).data
         return Response(diag_json, status=status.HTTP_200_OK)
 
-class IntervencionesView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-        intervenciones = Intervencion.objects.filter(paciente=paciente)
+# Intervenciones del evento
+class IntervencionesView(EventoView):
+    def get(self, request, curp, evento_id, format=None):
+        paciente = self.get_pac(curp)
+        evento = self.get_evento(evento_id)
+        intervenciones = Intervencion.objects.filter(paciente=paciente, evento=evento)
 
         if not intervenciones:
-            return JsonResponse({'warning': 'Paciente sin intervenciones'}, status=status.HTTP_204_NO_CONTENT)
+            return Response({'warning': 'Paciente sin intervenciones'}, status=status.HTTP_204_NO_CONTENT)
 
         inter_json = IntervencionSerializer(intervenciones, many=True).data
         return Response(inter_json, status=status.HTTP_200_OK)
 
-class MedicamentosView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-        medicamentos = Medicamento.objects.filter(paciente=paciente)
-
-        if not medicamentos:
-            return JsonResponse({'warning': 'Paciente sin medicamentos'}, status=status.HTTP_204_NO_CONTENT)
-
-        meds_json = MedicamentoSerializer(medicamentos, many=True).data
-        return Response(meds_json, status=status.HTTP_200_OK)
-
-    def post(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-        serializer = MedicamentoSerializer(data=request.data)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class TomasSignosView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-        tomas = Toma.objects.filter(paciente=paciente)
+# Tomas de Signos Vitales del evento
+class TomasSignosView(EventoView):
+    def get(self, request, curp, evento_id, format=None):
+        paciente = self.get_pac(curp)
+        evento = self.get_evento(evento_id)
+        tomas = Toma.objects.filter(paciente=paciente, evento=evento)
 
         if not tomas:
-            return JsonResponse({'warning': 'Paciente sin tomas de signos vitales'}, status=status.HTTP_204_NO_CONTENT)
+            return Response({'warning': 'Paciente sin tomas de signos vitales'}, status=status.HTTP_204_NO_CONTENT)
 
         tomas_json = TomaSerializer(tomas, many=True).data
 
@@ -248,10 +173,12 @@ class TomasSignosView(PacienteView):
 
         return Response(tomas_json, status=status.HTTP_200_OK)
 
-class RecetasView(PacienteView):
-    def get(self, request, paciente_id, format=None):
-        paciente = self.get_ctapac(paciente_id)
-        recetas = Receta.objects.filter(paciente=paciente)
+# Recetas del evento
+class RecetasView(EventoView):
+    def get(self, request, curp, evento_id, format=None):
+        paciente = self.get_pac(curp)
+        evento = self.get_evento(evento_id)
+        recetas = Receta.objects.filter(paciente=paciente, evento=evento)
 
         if not recetas:
             return Response({'warning': 'Paciente sin recetas'}, status=status.HTTP_204_NO_CONTENT)
@@ -264,3 +191,62 @@ class RecetasView(PacienteView):
             receta_json['medicamentos'] = meds_json
 
         return Response(recetas_json, status=status.HTTP_200_OK)
+
+# Cuestionarios del evento
+class CuestionarioView(EventoView):
+    def get(self, request, curp, evento_id, format=None):
+        paciente = self.get_pac(curp)
+        evento = self.get_evento(evento_id)
+        cuestionario = Cuestionario.objects.filter(paciente=paciente, evento=evento)
+
+        if not cuestionario:
+            return Response({'warning': 'Paciente sin cuestionarios contestados'}, status=status.HTTP_204_NO_CONTENT)
+
+        cuest_json = CuestionarioSerializer(cuestionario, many=True).data
+        return Response(cuest_json, status=status.HTTP_200_OK)
+
+# Info de Pacientes
+# -----------------------------
+# Alergias
+class AlergiasView(PacienteView):
+    def get(self, request, curp, format=None):
+        paciente = self.get_pac(curp)
+        alergias = Alergia.objects.filter(paciente=paciente)
+
+        if not alergias:
+            return Response({'warning': 'Paciente sin alergias'}, status=status.HTTP_204_NO_CONTENT)
+
+        aler_json = AlergiaSerializer(alergias, many=True).data
+        return Response(aler_json, status=status.HTTP_200_OK)
+
+    def post(self, request, curp, format=None):
+        self.get_pac(curp)
+        serializer = AlergiaSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Medicamentos Tomados en Casa
+class MedicamentosView(PacienteView):
+    def get(self, request, curp, format=None):
+        paciente = self.get_pac(curp)
+        medicamentos = Medicamento.objects.filter(paciente=paciente)
+
+        if not medicamentos:
+            return Response({'warning': 'Paciente sin medicamentos'}, status=status.HTTP_204_NO_CONTENT)
+
+        meds_json = MedicamentoSerializer(medicamentos, many=True).data
+        return Response(meds_json, status=status.HTTP_200_OK)
+
+    def post(self, request, curp, format=None):
+        paciente = self.get_pac(curp)
+        serializer = MedicamentoSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
